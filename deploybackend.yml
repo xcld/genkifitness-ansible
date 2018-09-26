@@ -146,7 +146,7 @@
              - postfix
              - mysql
       - name: create databases genkifitness
-          mysql_db:
+        mysql_db:
             login_host: "127.0.0.1"
             login_user: "root"
             login_port: "3306"
@@ -154,7 +154,7 @@
             encoding: "utf8"
             state: "present"
       - name: create databases  genkifitness user
-          mysql_user:
+        mysql_user:
             login_host: "127.0.0.1"
             login_user: "root"
             login_port: "3306"
