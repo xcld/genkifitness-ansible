@@ -13,27 +13,11 @@
         with_items:
             - python-apt
             - python-pycurl
-#      - name: 添加用户和组
-#        user: name={{ user }} group={{ crazysal }} shell="/bin/bash" state=present
-#      - name: Add ansible_user
-#        user: name={{ user }} state=present createhome=yes shell="/bin/bash"  group={{ group }} groups={{ansible_groups}}
-#        tags:
-#           - ansible
-#           - user
-#      - name: Ensure ansible_user .ssh directory exist
-#        file: path=/home/{{ user }}/.ssh state=directory owner={{ user }} group={{ group }} mode=0700
-#        tags:
-#           - ansible
-#           - user
-#      - name: Add ansible_user ssh_key
-#        template: src=ansible_authorized_keys.j2 dest=/home/{{ user }}/.ssh/authorized_keys owner={{ user }} group={{ group }} mode=600
-#        tags:
-#           - ansible
       - name: 添加php的ondrej源
         become: yes
         become_method: sudo
         apt_repository: repo='ppa:ondrej/php' update_cache=yes
-      - name: 安装 nginx,mysql,php 以及拓展依赖
+      - name: 安装 nginx,memcached,php 以及拓展依赖
         become: yes
         become_method: sudo
         apt: name={{ item }} state=present
@@ -42,6 +26,7 @@
              -  curl
              -  nginx
              -  memcached
+             -  php7.0
              -  dh-php
              -  php-common
              -  php-intl
@@ -71,14 +56,60 @@
         become: yes
         become_method: sudo
         service: name=ufw state=stopped
-      - name: create htmlroot dir
+      - name: backup oldnginxconfig
         become: yes
         become_method: sudo
-        file:
-           path: "{{ core_path }}"
-           state: directory
-           mode: 0755
-      - name: start nginx,mysql,php
+        shell: >
+           mv /etc/nginx /etc/nginx.bak
+      - name: backup oldphpconfig
+        become: yes
+        become_method: sudo
+        shell: >
+           mv /etc/php/7.0 /etc/php/7.0.bak
+      - name: backup oldmemcacheconfig
+        become: yes
+        become_method: sudo
+        shell: >
+           mv /etc/memcached.conf /etc/memcached.conf.bak
+
+      - name: Extract nginxconfig into dir
+        become: yes
+        become_method: sudo
+        unarchive:
+           src: "https://www.genkifitness.com/ge/nginxgenkifitness.tar.gz"
+           dest: "/etc/"
+           remote_src: yes
+      - name: Extract phpconfig into dir
+        become: yes
+        become_method: sudo
+        unarchive:
+           src: "https://www.genkifitness.com/ge/7.0genki.tar.gz"
+           dest: "/etc/php"
+           remote_src: yes
+      - name: Extract sslconfig into dir
+        become: yes
+        become_method: sudo
+        unarchive:
+           src: "https://www.genkifitness.com/ge/genkifitness.tar.gz"
+           dest: "/etc/ssl"
+           remote_src: yes
+      - name: Extract appsrc into dir
+        become: yes
+        become_method: sudo
+        unarchive:
+           src: "https://www.genkifitness.com/ge/crazysal.tar.gz"
+           dest: "/home"
+           group: crazysal
+           owner: crazysal
+           remote_src: yes
+      - name: get memchachconfig into dir
+        become: yes
+        become_method: sudo
+        get_url:
+           url: "https://www.genkifitness.com/ge/memcached.conf"
+           dest: "/etc/"
+           mode: 0644
+      - name: start memcache,nginx,php
         become: yes
         become_method: sudo
         service: "name={{ item }} state=started enabled=yes"
@@ -86,104 +117,13 @@
              - nginx
              - php7.0-fpm
              - memcached
-      - name : "nginx 修改主配置文件"
-        become: yes
-        become_method: sudo
-        template:
-           src: "templates/nginx.conf.j2"
-           dest: "/etc/nginx/nginx.conf"
-           owner: root
-           group: root
-           mode: 0744
-#      - name : "在nginx 中为{{ domain }}添加 virtualhost"
-#        template:
-#           src: "templates/ibmsv2.conf.j2.j2"
-#           dest: "/etc/nginx/sites-available/{{ domain }}.conf"
-#           owner: root
-#           group: root
-#
-#           mode: 0744
-        notify: restart nginx
-      - name: "配置php pool"
-        become: yes
-        become_method: sudo
-        file:
-           src: "templates/www.conf.j2"
-           dest: "/etc/php/7.0/fpm/pool.d/www.conf"
-           owner: root
-           group: root
-           mode: 0744
-      - name: "配置php.ini"
-        become: yes
-        become_method: sudo
-        template:
-           src: "templates/php.ini.j2"
-           dest: "/etc/php/7.0/fpm/php.ini"
-        notify: restart php7.0-fpm
-      - name: "配置 memcached"
-        become: yes
-        become_method: sudo
-        template:
-           src: "templates/memcached.conf.j2"
-           dest: "/etc/memcached.conf"
-        notify: restart memcached
-#      - name: create item dir
-#        file:
-#          path: /data/{{ domain }}
-#          state: directory
-#          mode: 0755
-#      - name: "更改mysql 数据目录"
-#        copy:
-#          src: /var/lib/mysql
-#          dest: /data/{{ domain }}/mysql
-#          owner: mysql
-#          group: mysql
-#          mode: 751
-#        file:
-#          dest: /data/{{ domain }}/mysql/ib_logfile*
-#          state: absent
-#      - name: "配置apparmor"
-#        template:
-#           src: "templates/usr.sbin.mysqld.j2"
-#           dest: "/etc/apparmor.d/usr.sbin.mysqld"
-#        notify: restart apparmor
-#        notify: restart mysql
-#      - name: Remove the MySQL test database.
-#        mysql_db: db=test state=absent
-#      - name: Create a database for {{ domain }}.
-#        mysql_db: "db={{ domain }} state=present"
-#      - name: create a user.
-##        mysql_user: "name: ibms2 password: '{{ pwd }}' priv: '{{ domain }}:ALL' state: present"
-#      - mysql_user:
-#        name: ibms2
-#        password: '{{ pwd }}'
-#        encrypted: yes
-#        priv: '{{ domain }}:ALL'
-#        state: present
-      - name: "Download composer installer"
-        become: yes
-        become_method: sudo
-        get_url:
-           url: "https://getcomposer.org/installer"
-           dest: /tmp/composer-installer.php
-           mode: 0755
-      - name: run composer installer
-        command: >
-           php composer-installer.php
-           chdir=/tmp
-           creates=/usr/local/bin/composer
-      - name: move composer into globally-accessible location.
-        become: yes
-        become_method: sudo
-        shell: >
-           mv /tmp/composer.phar /usr/local/bin/composer
-           creates=/usr/local/bin/composer
-  handlers:
-      - name: restart nginx
-        service: name=nginx state=restarted
-      - name: restart php7.0-fpm
-        service: name=php7.0-fpm state=restarted
-      - name: restart memcached
-        service: name=memcached state=restarted
-      - name: restart mysql
-        service: name=mysql state=restarted
+
+#  handlers:
+#      - name: restart nginx
+#        service: name=nginx state=restarted
+#      - name: restart php7.0-fpm
+#        service: name=php7.0-fpm state=restarted
+#      - name: restart memcached
+#        service: name=memcached state=restarted
+#      - name: restart mysql
+#        service: name=mysql state=restarted
