@@ -126,7 +126,7 @@
         become: yes
         become_method: sudo
         unarchive:
-           src: "https://admin.genkifitness.com/geadm/postfixfront.tar.gz"
+           src: "https://admin.genkifitness.com/geadm/postfixgenad.tar.gz"
            dest: "/etc/"
            validate_certs: no
            remote_src: yes
