@@ -25,79 +25,36 @@
         with_items:
              -  git
              -  curl
-             - dh-php
-               php-cli-prompt
-               php-common
-               php-composer-semver
-               php-composer-spdx-licenses
-               php-igbinary
-               php-imagick
-               php-json-schema
-               php-memcache
-               php-memcached
-               php-msgpack
-               php-pear
-               php-symfony-console
-               php-symfony-filesystem
-               php-symfony-finder
-               php-symfony-process
-               php5.6-cli
-               php5.6-common
-               php5.6-curl
-               php5.6-dev
-               php5.6-fpm
-               php5.6-gd
-               php5.6-imap
-               php5.6-intl
-               php5.6-json
-               php5.6-mbstring
-               php5.6-mcrypt
-               php5.6-mysql
-               php5.6-opcache
-               php5.6-pspell
-               php5.6-readline
-               php5.6-recode
-               php5.6-snmp
-               php5.6-sqlite3
-               php5.6-tidy
-               php5.6-xml
-               php5.6-xmlrpc
-               php5.6-xsl
-               php5.6-zip
-               pkg-php-tools
-               memcached
-               postfix
-               mysql-server
-               mysql-client
-
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
-             -
+             -  memcached
+             -  php5.6
+             -  php-cli
+             -  php-common
+             -  php-gd
+             -  php-gettext
+             -  php-igbinary
+             -  php-memcache
+             -  php-memcached
+             -  php-msgpack
+             -  php-pear
+             -  php-snmp
+             -  php-xdebug
+             -  php5.6
+             -  php5.6-cli
+             -  php5.6-common
+             -  php5.6-curl
+             -  php5.6-fpm
+             -  php5.6-gd
+             -  php5.6-json
+             -  php5.6-mbstring
+             -  php5.6-mcrypt
+             -  php5.6-mysql
+             -  php5.6-opcache
+             -  php5.6-readline
+             -  php5.6-soap
+             -  php5.6-xml
+             -  postfix
+             -  mysql-server
+             -  mysql-client
       - name: "stop ufw"
         become: yes
         become_method: sudo
@@ -111,48 +68,71 @@
         become: yes
         become_method: sudo
         shell: >
-           mv /etc/php/7.0 /etc/php/7.0.bak
+           mv /etc/php/5.6 /etc/php/5.6.bak
       - name: backup oldmemcacheconfig
         become: yes
         become_method: sudo
         shell: >
            mv /etc/memcached.conf /etc/memcached.conf.bak
-
+      - name: backup oldphpconfig
+        become: yes
+        become_method: sudo
+        shell: >
+           mv /etc/mysql /etc/mysql.bak
       - name: Extract nginxconfig into dir
         become: yes
         become_method: sudo
         unarchive:
-           src: "https://www.genkifitness.com/ge/nginxgenkifitness.tar.gz"
+           src: "https://admin.genkifitness.com/geadm/nginxgenadmin.tar.gz"
            dest: "/etc/"
            remote_src: yes
       - name: Extract phpconfig into dir
         become: yes
         become_method: sudo
         unarchive:
-           src: "https://www.genkifitness.com/ge/7.0genki.tar.gz"
+           src: "https://admin.genkifitness.com/geadm/5.6genadminphp.tar.gz"
            dest: "/etc/php"
            remote_src: yes
       - name: Extract sslconfig into dir
         become: yes
         become_method: sudo
         unarchive:
-           src: "https://www.genkifitness.com/ge/genkifitness.tar.gz"
+           src: "https://admin.genkifitness.com/geadm/bestdealsgenad.tar.gz"
            dest: "/etc/ssl"
+           remote_src: yes
+      - name: Extract mysqlconfig into dir
+        become: yes
+        become_method: sudo
+        unarchive:
+           src: "https://admin.genkifitness.com/geadm/mysqlgead.tar.gz"
+           dest: "/etc/"
            remote_src: yes
       - name: Extract appsrc into dir
         become: yes
         become_method: sudo
         unarchive:
-           src: "https://www.genkifitness.com/ge/crazysal.tar.gz"
+           src: "https://admin.genkifitness.com/geadm/crazysalgenadm.tar.gz"
            dest: "/home"
            group: crazysal
            owner: crazysal
            remote_src: yes
+      - name: Extract postfixconfig into dir
+        become: yes
+        become_method: sudo
+        unarchive:
+           src: "https://admin.genkifitness.com/geadm/postfixfront.tar.gz"
+           dest: "/etc/"
+           remote_src: yes
+      - name: configure postfix CAfile
+        become: yes
+        become_method: sudo
+        shell: >
+           postconf -e 'smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt'
       - name: get memchachconfig into dir
         become: yes
         become_method: sudo
         get_url:
-           url: "https://www.genkifitness.com/ge/memcached.conf"
+           url: "https://admin.genkifitness.com/geadm/memcached.conf"
            dest: "/etc/"
            mode: 0644
       - name: start memcache,nginx,php
@@ -161,5 +141,25 @@
         service: "name={{ item }} state=started enabled=yes"
         with_items:
              - nginx
-             - php7.0-fpm
+             - php5.6-fpm
              - memcached
+             - postfix
+             - mysql
+      - name: create databases genkifitness
+          mysql_db:
+            login_host: "127.0.0.1"
+            login_user: "root"
+            login_port: "3306"
+            name: ""genkifitness
+            encoding: "utf8"
+            state: "present"
+      - name: create databases  genkifitness user
+          mysql_user:
+            login_host: "127.0.0.1"
+            login_user: "root"
+            login_port: "3306"
+            name: "genkifitness"
+            password: "nohack"
+            host: "172.30.0.%"
+            priv: 'genkifitness.*:ALL'
+            state: "present"
