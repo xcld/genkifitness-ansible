@@ -1,5 +1,5 @@
 ---
-- hosts: genkifitness_front
+- hosts: genkifitness_backend
   pre_tasks:
       - name: update apt cache if needed.
         become: yes
@@ -13,6 +13,7 @@
         with_items:
             - python-apt
             - python-pycurl
+            - python-mysqldb
       - name: 添加php的ondrej源
         become: yes
         become_method: sudo
@@ -24,35 +25,79 @@
         with_items:
              -  git
              -  curl
-             -  nginx
-             -  memcached
-             -  php7.0
-             -  dh-php
-             -  php-common
-             -  php-intl
-             -  php-memcache
-             -  php-memcached
-             -  php-pear
-             -  php7.0-cli
-             -  php7.0-common
-             -  php7.0-curl
-             -  php7.0-dev
-             -  php7.0-fpm
-             -  php7.0-gd
-             -  php7.0-intl
-             -  php7.0-json
-             -  php7.0-mbstring
-             -  php7.0-mcrypt
-             -  php7.0-mysql
-             -  php7.0-opcache
-             -  php7.0-readline
-             -  php7.0-soap
-             -  php7.0-xml
-             -  php7.0-zip
-             -  pkg-php-tools
-             -  openssl
-             -  libcurl4-openssl-dev
-             -  postfix
+             - dh-php
+               php-cli-prompt
+               php-common
+               php-composer-semver
+               php-composer-spdx-licenses
+               php-igbinary
+               php-imagick
+               php-json-schema
+               php-memcache
+               php-memcached
+               php-msgpack
+               php-pear
+               php-symfony-console
+               php-symfony-filesystem
+               php-symfony-finder
+               php-symfony-process
+               php5.6-cli
+               php5.6-common
+               php5.6-curl
+               php5.6-dev
+               php5.6-fpm
+               php5.6-gd
+               php5.6-imap
+               php5.6-intl
+               php5.6-json
+               php5.6-mbstring
+               php5.6-mcrypt
+               php5.6-mysql
+               php5.6-opcache
+               php5.6-pspell
+               php5.6-readline
+               php5.6-recode
+               php5.6-snmp
+               php5.6-sqlite3
+               php5.6-tidy
+               php5.6-xml
+               php5.6-xmlrpc
+               php5.6-xsl
+               php5.6-zip
+               pkg-php-tools
+               memcached
+               postfix
+               mysql-server
+               mysql-client
+
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
+             -
       - name: "stop ufw"
         become: yes
         become_method: sudo
@@ -72,11 +117,6 @@
         become_method: sudo
         shell: >
            mv /etc/memcached.conf /etc/memcached.conf.bak
-      - name: backup oldpostfix
-        become: yes
-        become_method: sudo
-        shell: >
-           mv /etc/postfix /etc/postfix.bak
 
       - name: Extract nginxconfig into dir
         become: yes
@@ -108,18 +148,6 @@
            group: crazysal
            owner: crazysal
            remote_src: yes
-      - name: Extract postfixconfig into dir
-        become: yes
-        become_method: sudo
-        unarchive:
-           src: "https://www.genkifitness.com/ge/postfixfront.tar.gz"
-           dest: "/etc/"
-           remote_src: yes
-      - name: configure postfix CAfile
-        become: yes
-        become_method: sudo
-        shell: >
-           postconf -e 'smtp_tls_CAfile = /etc/ssl/certs/ca-certificates.crt'
       - name: get memchachconfig into dir
         become: yes
         become_method: sudo
@@ -135,14 +163,3 @@
              - nginx
              - php7.0-fpm
              - memcached
-             - postfix
-
-#  handlers:
-#      - name: restart nginx
-#        service: name=nginx state=restarted
-#      - name: restart php7.0-fpm
-#        service: name=php7.0-fpm state=restarted
-#      - name: restart memcached
-#        service: name=memcached state=restarted
-#      - name: restart mysql
-#        service: name=mysql state=restarted
