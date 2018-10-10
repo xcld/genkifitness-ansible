@@ -166,7 +166,7 @@
             login_user: "root"
             login_port: "3306"
             name: "genkifitness"
-            password: "nohack"
+            password: "pwd"
             host: "172.30.0.%"
             priv: 'genkifitness.*:ALL'
             state: "present"
